@@ -1,0 +1,19 @@
+# Environments
+.venv/
+venv/
+env/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE files (PyCharm)
+.idea/
+
+# Data and Logs
+*.csv
+*.log
+*.sqlite
+data/
+plots/
