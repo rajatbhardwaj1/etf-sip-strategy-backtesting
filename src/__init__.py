@@ -1,7 +1,6 @@
 # src/__init__.py
 
-from .backtester import Backtester
+from .utils import fetch_ohlc, fetch_multiple_ohlc
 from .strategy import MovingAverageStrategy
-from .utils import fetch_data
-
-__all__ = ["Backtester", "MovingAverageStrategy", "fetch_data"]
+from .backtester import Backtester
+from .etfs import ETFS

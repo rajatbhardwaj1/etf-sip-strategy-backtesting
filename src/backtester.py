@@ -1,7 +1,9 @@
-import pandas as pd
-from src.utils import fetch_data
+from src.utils import fetch_ohlc
 
 class Backtester:
+    """
+    Backtester for a single symbol and strategy.
+    """
     def __init__(self, symbol: str, start: str, end: str, strategy):
         self.symbol = symbol
         self.start = start
@@ -10,19 +12,22 @@ class Backtester:
 
     def run(self):
         # Fetch data
-        data = fetch_data(self.symbol, self.start, self.end)
+        data = fetch_ohlc(self.symbol, self.start, self.end)
+        if data.empty:
+            print(f"No data for {self.symbol}")
+            return None
 
         # Generate signals
         signals = self.strategy.generate_signals(data)
 
-        # Backtest portfolio
+        # Portfolio backtesting
         initial_capital = 10000.0
         shares = 0
         cash = initial_capital
         portfolio_values = []
         trades = 0
 
-        for date, row in signals.iterrows():
+        for _, row in signals.iterrows():
             price = row["Close"]
 
             # Buy signal
@@ -37,11 +42,9 @@ class Backtester:
                 shares = 0
                 trades += 1
 
-            # Portfolio value = cash + shares*price
             portfolio_values.append(cash + shares * price)
 
         signals["portfolio"] = portfolio_values
-
         return {
             "data": signals,
             "portfolio": portfolio_values,
