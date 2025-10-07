@@ -1,5 +1,5 @@
 from src.etfs import ETFS
-from src.utils import save_etf_data
+from utils import save_etf_data_yf
 
 if __name__ == "__main__":
-    save_etf_data(ETFS, start="2015-01-01")
+    save_etf_data_yf(ETFS+ ["^NSEI"], start="2015-01-01")
