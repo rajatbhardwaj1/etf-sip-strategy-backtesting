@@ -7,9 +7,12 @@ import matplotlib.dates as mdates
 
 import os
 import warnings
+import datetime
+import numpy_financial as npf
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-DATA_DIR = "data"
+DATA_DIR = "backtesting/data"
 
 # Ensure the data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -573,3 +576,30 @@ def plot_strategy_vs_index_without_cash(
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.show()
+
+def xirr_calculator(monthly_invested_cash, net_worth_history):
+    """
+    Calculate the IRR (approx CAGR) for a SIP strategy
+    assuming equal monthly intervals.
+    """
+    cashflows = []
+
+    # Monthly SIPs (outflows)
+    for _, amount in monthly_invested_cash.items():
+        cashflows.append(-amount)
+
+    # Final redemption (inflow)
+    if net_worth_history:
+        final_value = net_worth_history[-1]["NetWorth"]
+        cashflows.append(final_value)
+
+    print("Cashflows:", cashflows)
+
+    try:
+        irr_monthly = npf.irr(cashflows)
+        irr_annual = (1 + irr_monthly)**12 - 1 if irr_monthly is not None else None
+    except Exception as e:
+        print("IRR calculation failed:", e)
+        irr_annual = None
+
+    return irr_annual

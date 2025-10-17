@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from finances.src.strategy import MovingAverageStrategy
+from strategy import MovingAverageStrategy
 
 
 class TestMovingAverageStrategy(unittest.TestCase):

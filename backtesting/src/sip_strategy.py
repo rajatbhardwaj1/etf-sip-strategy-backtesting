@@ -1,6 +1,8 @@
 import datetime
 import pandas as pd
 from typing import Dict
+
+from utils import xirr_calculator
 from .utils import (
     clean_ohlc_data,
     calculate_dma,
@@ -42,6 +44,7 @@ class SIPStrategy:
         cash = capital
         hydration = 0
         buy_divisor = 40
+        hydration_increment = 100000
         # Prepare percent changes
         percent_changes = {}
         for symbol, df in etf_data.items():
@@ -58,7 +61,7 @@ class SIPStrategy:
             if last_year != date.year:
                 last_year = date.year
                 if not first_year :
-                    hydration += 200000
+                    hydration += hydration_increment
                     sip_amount = sip_amount  + (self.increment/100)*sip_amount
                 first_year = False
             for sym in portfolio:
@@ -147,11 +150,13 @@ class SIPStrategy:
             net_worth_history.append({"Date": date, "NetWorth": net_worth})
             cash_history.append({"Date": date, "Cash": cash})
 
+        xirr = xirr_calculator(monthly_invested_cash, net_worth_history)
         return {
             "trades": trades,
             "net_worth": pd.DataFrame(net_worth_history),
             "monthly_invested_cash": monthly_invested_cash,
             "cash_history": cash_history,
             "portfolio": portfolio,
-            "cash" : cash
+            "cash" : cash,
+            "xirr" : xirr
         }

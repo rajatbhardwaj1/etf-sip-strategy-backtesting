@@ -1,4 +1,5 @@
-from src.utils import fetch_multiple_ohlc, filter_outliers, fetch_ohlc, calculate_cagr, plot_strategy_vs_index
+from src.utils import fetch_multiple_ohlc, filter_outliers, fetch_ohlc, calculate_cagr, plot_strategy_vs_index, \
+    xirr_calculator
 from src.sip_strategy import SIPStrategy
 from src.etfs import ETFS
 import matplotlib.pyplot as plt
@@ -6,10 +7,10 @@ import pandas as pd
 import json
 
 if __name__ == "__main__":
-    start_date = "2020-01-01"
+    start_date = "2024-10-01"
     end_date = "2025-10-01"
     initial_capital = 0
-    sip_amount = 50000
+    sip_amount = 30000
 
     # --- Fetch ETFs ---
     etf_data = fetch_multiple_ohlc(ETFS, start=start_date, end=end_date)
@@ -28,13 +29,13 @@ if __name__ == "__main__":
     portfolio = result.get("portfolio" , {})
 
     # --- Print CAGR ---
-    cagr_result = calculate_cagr(net_worth_df, value_column="NetWorth", invested_column=None)
-    print(f"SIP Strategy Overall CAGR: {cagr_result['overall_cagr'] * 100:.2f}%")
-    print(f"SIP Strategy Final Net Worth: {net_worth_df['NetWorth'].iloc[-1]:.2f}")
-    print(f"SIP Strategy Overall CAGR: {cagr_result['overall_cagr']*100:.2f}%")
-    print("SIP Strategy Yearly CAGR:")
-    for year, c in cagr_result["yearly_cagr"].items():
-        print(f"  {year}: {c*100:.2f}%")
+    # cagr_result = calculate_cagr(net_worth_df, value_column="NetWorth", invested_column=None)
+    # print(f"SIP Strategy Overall CAGR: {cagr_result['overall_cagr'] * 100:.2f}%")
+    # print(f"SIP Strategy Final Net Worth: {net_worth_df['NetWorth'].iloc[-1]:.2f}")
+    # print(f"SIP Strategy Overall CAGR: {cagr_result['overall_cagr']*100:.2f}%")
+    # print("SIP Strategy Yearly CAGR:")
+    # for year, c in cagr_result["yearly_cagr"].items():
+    #     print(f"  {year}: {c*100:.2f}%")
 
     # --- Extra cash per month ---
     if extra_cash_needed is not None:
@@ -42,7 +43,7 @@ if __name__ == "__main__":
         for month, (amt, net_worth) in sorted(extra_cash_needed.items()):
             print(f"  {month}: Extra Cash = {amt:.2f}, Net Worth = {net_worth:.2f}")
     # --- Monthly invested cash and net worth ---
-    if monthly_invested_cash:
+    if monthly_invested_cash is not None:
         print("\n Total Monthly Invested Cash vs Net Worth at Month End:")
 
         # Convert net worth dates to month string
@@ -53,7 +54,6 @@ if __name__ == "__main__":
             net_worth = monthly_net_worth.get(month, 0)
             print(f"  {month}: Invested = {invested:.2f}, Month-End Net Worth = {net_worth:.2f}")
 
-
     # --- Nifty SIP comparison ---
     nifty_ticker = "^NSEI"
     nifty_df = fetch_ohlc(nifty_ticker, start=start_date, end=end_date)
@@ -61,13 +61,14 @@ if __name__ == "__main__":
     nifty_df = nifty_df.sort_values("Date")
     nifty_df = filter_outliers(nifty_df, column="Close", max_change_pct=20)
 
-    # --- Nifty SIP comparison with annual increment ---
+    # --- Initialize SIP tracking ---
     nifty_units = 0
     nifty_cash_invested = 0
     nifty_sip = sip_amount
     nifty_df["Units"] = 0
     nifty_df["InvestedValue"] = 0
     total_invested = 0
+    monthly_invested_cash_nifty = {}
 
     last_month = None
     for i, row in nifty_df.iterrows():
@@ -75,24 +76,38 @@ if __name__ == "__main__":
         price = row["Close"]
         month_str = date.strftime("%Y-%m")
 
-        # SIP on first trading day of the month
+        # SIP on first trading day of each month
         if month_str != last_month:
-            # Annual increment in January
+            # Annual increment in January (after first year)
             if date.month == 1 and last_month is not None:
-                nifty_sip *= 1.15
+                nifty_sip *= 1.15  # or use your increment variable
 
+            # Update units and invested cash
             nifty_units += nifty_sip / price
             nifty_cash_invested += nifty_sip
             total_invested += nifty_sip
+            monthly_invested_cash_nifty[month_str] = nifty_sip
+
             last_month = month_str
 
+        # Update dataframe for plotting/tracking
         nifty_df.loc[i, "Units"] = nifty_units
         nifty_df.loc[i, "InvestedValue"] = nifty_units * price
 
-    nifty_cagr_result = calculate_cagr(nifty_df, value_column="InvestedValue")
-    print(f"\nNifty 50 Final Value (with SIP): {nifty_df['InvestedValue'].iloc[-1]:.2f}")
-    print(f"\nTotal invested sum : {total_invested:.2f}")
-    print(f"Nifty 50 Overall CAGR: {nifty_cagr_result['overall_cagr'] * 100:.2f}%")
+    # --- Prepare net worth history for XIRR ---
+    net_worth_history_nifty = [{"NetWorth": nifty_units * nifty_df["Close"].iloc[-1]}]
+
+    # --- Calculate XIRR ---
+    nifty_xirr = xirr_calculator(monthly_invested_cash_nifty, net_worth_history_nifty)
+
+    # --- Print results ---
+    final_value = nifty_df["InvestedValue"].iloc[-1]
+    print(f"\nNifty 50 Final Value (with SIP): {final_value:.2f}")
+    print(f"Total invested sum: {total_invested:.2f}")
+    print(
+        f"Nifty 50 Overall CAGR (via calculate_cagr): {calculate_cagr(nifty_df, value_column='InvestedValue')['overall_cagr'] * 100:.2f}%")
+    if nifty_xirr is not None:
+        print(f"Nifty 50 XIRR (annualized CAGR): {nifty_xirr * 100:.2f}%")
 
     # --- Plot net worth vs index ---
     net_worth_df["PrevNetWorth"] = net_worth_df["NetWorth"].shift(1)
@@ -118,6 +133,8 @@ if __name__ == "__main__":
     portfolio = result.get("portfolio", {})
     final_cash = result.get("cash", None)
     net_worth_df = result["net_worth"]
+    xirr = result.get("xirr")
+    xirr *= 100
 
     trades_df = pd.DataFrame(trades)
     # Ensure action column is string to use str.contains safely
@@ -172,7 +189,9 @@ if __name__ == "__main__":
     expected_net_worth = initial_capital + total_sip - total_fees + pnl_total
 
     print("=== Reconciliation ===")
+
     print("Total SIP (sum monthly_invested_cash):", total_sip)
+    print(f"XIRR of SIP strategy: {xirr:.2f}%")
     print("Total buy spend (sum of BUY price*shares):", total_buy_spend)
     print("Total sell proceeds (sum price*shares for SELL):", total_sell_proceeds)
     print("Total realized profit (sum trade profit for SELL):", total_realized_profit)
@@ -184,4 +203,5 @@ if __name__ == "__main__":
     print("PnL_total (S + market_value - B):", pnl_total)
     print("Expected net worth (initial + SIP - fees + PnL_total):", expected_net_worth)
     print("Gap (reported_net_worth - expected_net_worth):", reported_net_worth - expected_net_worth)
+
     plot_strategy_vs_index(net_worth_df, nifty_df,big_drops,  cash_history_df)

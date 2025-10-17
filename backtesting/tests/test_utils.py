@@ -1,8 +1,8 @@
 import unittest
 import warnings
-from src.utils import fetch_ohlc, check_opening_price_discrepancies
-from src.utils import plot_opening_prices
-from src.etfs import ETFS
+from utils import fetch_ohlc, check_opening_price_discrepancies
+from utils import plot_opening_prices
+from etfs import ETFS
 import pandas as pd
 import os
 # Suppress FutureWarnings from yfinance

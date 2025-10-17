@@ -1,5 +1,5 @@
-from src.backtester import Backtester
-from src.strategy import MovingAverageStrategy
+from backtester import Backtester
+from strategy import MovingAverageStrategy
 
 
 def test_backtester_runs():
