@@ -7,7 +7,7 @@ import pandas as pd
 import json
 
 if __name__ == "__main__":
-    start_date = "2024-10-01"
+    start_date = "2025-08-01"
     end_date = "2025-10-01"
     initial_capital = 0
     sip_amount = 30000
