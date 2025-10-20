@@ -12,7 +12,7 @@ import numpy_financial as npf
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-DATA_DIR = "backtesting/data"
+DATA_DIR = "data"
 
 # Ensure the data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)

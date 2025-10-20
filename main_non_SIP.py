@@ -6,7 +6,7 @@ import pandas as pd
 import yfinance as yf
     ##ddate -- 2024-11-05
 if __name__ == "__main__":
-    start_date = "2020-01-01"
+    start_date = "2019-01-01"
     end_date = "2025-08-10"
     initial_capital = 100000
 

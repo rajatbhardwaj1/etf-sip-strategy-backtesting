@@ -7,7 +7,7 @@ import pandas as pd
 import json
 
 if __name__ == "__main__":
-    start_date = "2025-08-01"
+    start_date = "2020-08-01"
     end_date = "2025-10-01"
     initial_capital = 0
     sip_amount = 30000
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     cash_history_df = pd.DataFrame(result["cash_history"])
     # --- Save trades to CSV ---
     trades_df = pd.DataFrame(trades)
-    trades_df.to_csv(f"sip_strategy_trades_{date.strftime('%Y-%m')}.csv", index=False)
+    trades_df.to_csv(f"sip_strategy_trades.csv", index=False)
     print("\nTrades saved to sip_strategy_trades.csv")
 
     print("total profit = " , trades_df["profit"].sum() )

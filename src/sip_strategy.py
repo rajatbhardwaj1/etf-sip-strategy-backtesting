@@ -2,8 +2,8 @@ import datetime
 import pandas as pd
 from typing import Dict
 
-from utils import xirr_calculator
-from .utils import (
+from src.utils import xirr_calculator
+from src.utils import (
     clean_ohlc_data,
     calculate_dma,
     calculate_pct_change_vs_dma,

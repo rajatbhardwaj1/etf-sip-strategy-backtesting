@@ -1,4 +1,4 @@
-from utils import fetch_ohlc
+from src.utils import fetch_ohlc
 
 class Backtester:
     """
