@@ -11,6 +11,9 @@ __pycache__/
 # Generated reports — rebuilt by main.py, and large
 reports/
 *.html
+# ...except the published docs, which are the point of GitHub Pages.
+!docs/
+!docs/*.html
 
 # Backtest outputs — regenerated on every run
 sip_strategy_trades.csv

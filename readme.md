@@ -92,111 +92,84 @@ is not counted as performance.
 
 # Multi-window backtest (Nov 2026)
 
-Run `backtest_windows.py` for the regime table, `param_sweep.py` for
-one-at-a-time sensitivity, `candidate_configs.py` to test a candidate across
-every window. Universe is read live from `strategy-automation/src/etf.py`, so
-it cannot drift from what is actually deployed. Benchmarks receive the
-strategy's **own monthly cashflows**, so the comparison measures the strategy
-and not the SIP schedule.
+**📄 [Full write-up: docs/RESULTS.md](docs/RESULTS.md)** — methodology, regime
+results, limitations and a Yahoo data bug that was inflating every earlier
+number.
 
-## First: a data bug that was inflating every pre-2020 result
+**📊 [Interactive charts](https://rajatbhardwaj1.github.io/etf-sip-strategy-backtesting/)**
+— net worth, idle cash, cumulative SIP and a cashflow-matched Nifty 50 SIP, for
+each of eight windows. (Enable GitHub Pages from `/docs` to serve this.)
 
-Five Nippon India (BeES) ETFs carry corrupt prices on **2019-12-19 and
-2019-12-20** — Yahoo applied a bogus split factor for two days (10x for
-NIFTYBEES, BANKBEES, PSUBNKBEES, HNGSNGBEES; 100x for GOLDBEES, which shows
-₹0.34 against a true ₹34).
+## Headline
 
-`filter_outliers()` cannot catch this. It compares each row only to the
-previous one, computed in a single pass, so the -99% entry and +9900% exit rows
-are dropped while the corrupt **plateau between them survives**. The strategy
-read that plateau as the largest "fallen" signal in its history, bought with
-everything it had, and booked a fictional ₹5.7M profit — 99.7% of all profit in
-the 2016-2019 window.
+₹30,000/month SIP, +15% a year, on the 39-ETF universe the live bot trades.
+Benchmarks receive the strategy's own cashflows, so the comparison measures the
+strategy and not the SIP schedule.
 
-`sanitize_price_series()` compares each price to a centred 21-day rolling
-median and drops anything outside a 3x band. A plateau cannot drag a median it
-is a minority of. Now wired into `main.py` and the backtest harness.
+| Window | Years | Strategy XIRR | Nifty 50 | Max DD | Avg idle cash |
+|---|---:|---:|---:|---:|---:|
+| Full history (2016→) | 10.9 | **+15.2%** | +10.3% | -33% | 28% |
+| Pre-COVID (2016-19) | 4.0 | **+14.1%** | +10.9% | -13% | 45% |
+| COVID crash+rally (2020-21) | 2.0 | +17.8% | **+32.1%** | -15% | 57% |
+| Bear/sideways (2022) | 1.0 | **+26.4%** | +9.2% | -6% | 54% |
+| Recent regime (2023→) | 3.9 | **+12.4%** | +5.7% | -9% | 28% |
+| Last 5 years | 5.0 | **+13.3%** | +6.8% | -9% | 26% |
+| Last 3 years | 3.0 | **+11.1%** | +3.7% | -11% | 25% |
+| Last 1 year | 1.0 | **+13.5%** | +6.3% | -6% | 36% |
 
-Effect of the fix:
+Beat the index in 7 of 8 windows. The single loss is the 2020-21 melt-up: a
+dip-buyer holding half its book in cash cannot keep up with a market that only
+rises, and it returns the favour in 2022 (+26.4% against +9.2%).
+
+## The data bug
+
+Five Nippon BeES ETFs carry corrupt prices on **2019-12-19/20** - Yahoo applied
+a bogus split factor for two days, 100x on GOLDBEES, which shows ₹0.34 against
+a true ₹34. A previous-row outlier filter cannot catch it: the -99% entry and
++9900% exit rows are dropped while the corrupt plateau between them survives.
+The strategy read that plateau as the largest "fallen" signal in its history
+and booked a fictional ₹5.7M profit - 99.7% of all profit in the 2016-2019
+window.
+
+`sanitize_price_series()` compares each price to a centred 21-day rolling median
+instead, and is wired into `main.py` and the backtest harness.
 
 | Window | Before | After |
-|---|---|---|
+|---|---:|---:|
 | Pre-COVID (2016-2019) | +92.1% | **+14.1%** |
 | Full history (2016→) | +27.8% | **+15.2%** |
 
-Any earlier result from this repo that spans Dec 2019 was overstated.
+## Parameters hold up
 
-## Results — live configuration
+`dma_window = 10` is genuinely optimal (5 → +15.4%, 20 → +13.2%, 50 → +12.1%,
+against +15.2%), confirming the original note above. `profit_threshold = 6.5`,
+`avg_down_threshold = 4%` and `trailing_stop = 0.5%` also survive testing: the
+alternatives are worse on balance. Raising the profit threshold looked better on
+the two windows the sweep tuned on and then beat live in only 2 of 8 - tune on a
+subset, validate on everything.
 
-DMA 10, profit threshold 6.5%, trailing stop 0.5%, 1 buy/day, avg-down 4%,
-buy divisor 40. SIP ₹30,000/month, +15% a year.
+## Research note
 
-| Window | Years | ETFs | Strategy XIRR | Nifty 50 | Nifty 500 | Max DD | Avg cash |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Full history (2016→) | 10.9 | 37 | **+15.2%** | +10.3% | +11.9% | -33% | 28% |
-| Pre-COVID (2016-19) | 4.0 | 13 | **+14.1%** | +10.9% | +8.2% | -13% | 45% |
-| COVID crash+rally (2020-21) | 2.0 | 19 | +17.8% | **+32.1%** | +36.7% | -15% | 57% |
-| Bear/sideways (2022) | 1.0 | 25 | **+26.4%** | +9.2% | +8.2% | -6% | 54% |
-| Recent regime (2023→) | 3.9 | 37 | **+12.4%** | +5.7% | +7.3% | -9% | 28% |
-| Last 5 years | 5.0 | 37 | **+13.3%** | +6.8% | +8.6% | -9% | 26% |
-| Last 3 years | 3.0 | 37 | **+11.1%** | +3.7% | +4.3% | -11% | 25% |
-| Last 1 year | 1.0 | 37 | **+13.5%** | +6.3% | +5.3% | -6% | 36% |
+The no-stop-loss design works - 408 of 433 positions (94%) exited at +6.5%,
+median hold 63 days - but the averaging that underpins it rarely fires. 66% of
+exited positions were never averaged at all, and INFRABEES, LOWVOLIETF and
+ALPL30IETF were each held 1.5-2.5 years with **zero** averaging despite being
+eligible on 138, 232 and 43 days. Averaging is gated on ranking in the day's
+top-3 most-fallen vs the 10-day DMA, which a position that drifted down over
+months never does; and between -4% and +6.5% nothing can happen at all.
 
-**It beats the index in 7 of 8 windows, by 5-17 points.** The one loss is the
-2020-21 melt-up: +17.8% against +32.1%. That is the expected signature of a
-dip-buying strategy holding half its book in cash — it cannot keep up with a
-market that only goes up, and it dominates when the market chops.
+Triggering on drawdown from average cost with a reserved daily slot raises mean
+XIRR across the eight windows from +15.5% to +17.2% and cuts end-of-window
+underwater positions from 90 to 69. Opt-in via `avg_down_scan_all`,
+`avg_down_priority` and `avg_down_extra_slots`; defaults are unchanged, and the
+live deployment runs the original rules. Details in
+[docs/RESULTS.md](docs/RESULTS.md).
 
-### Two structural caveats
+## Scripts
 
-- **Universe availability, not survivorship.** Only 10 of the 37 ETFs existed
-  in 2016; six listed in 2024. The 2016 window is really a 10-ETF strategy that
-  grows into a 37-ETF one. Point-in-time correct, but the early years are not
-  testing today's strategy.
-- **Every window starts from zero.** Each buy is net_worth/40, so a fresh run
-  deploys very slowly — which is why short windows show 36-57% average cash. A
-  mature book (the live one) does not carry that drag, so short-window results
-  understate the live setup.
-
-## Can it be improved? Yes — one bottleneck dominates
-
-Cash drag. The live config leaves **25-28% of net worth idle** in mature
-windows and over half in young ones. Fixing deployment is worth more than
-anything else tested.
-
-| Config | Mean XIRR | Beats live | Beats Nifty | Worst DD |
-|---|---:|---:|---:|---:|
-| A — live (divisor 40, 1 buy/day) | +15.5% | — | 7/8 | -33.3% |
-| **B — buy divisor 10** | **+17.5%** | 6/8 | **8/8** | -35.1% |
-| **C — max 3 buys/day** | **+16.9%** | **7/8** | 7/8 | **-32.5%** |
-| D — profit threshold 12 | +13.8% | 2/8 | 5/8 | -34.5% |
-| G — B+C together | +16.3% | 4/8 | 8/8 | -34.7% |
-| H — divisor 20, 3 buys/day | +14.6% | 2/8 | 6/8 | -35.1% |
-
-- **B (divisor 10)** is the highest-returning and the only config that beats
-  the index in all 8 windows. It closes the bull-market gap outright: +36.8%
-  against Nifty's +32.1% in 2020-21, where live managed +17.8%. Costs ~2 points
-  of extra drawdown, and it is the weakest config over the last year.
-- **C (3 buys/day)** is the most consistent — it is the only change that beat
-  live in 7 of 8 windows *and* reduced drawdown.
-- **B and C are substitutes, not complements.** Both solve the same bottleneck;
-  applying both (G) is worse than either alone, because it over-deploys.
-- **D is a cautionary tale.** Raising the exit threshold looked good on the two
-  windows the sweep tuned on, then beat live in only 2 of 8. Tune on a subset,
-  validate on everything.
-
-### Confirmed as already-correct
-
-`dma_window = 10` is well chosen — 20 gives +13.2%, 5 gives +15.4%, 50 gives
-+12.1%, against +15.2% for 10. The readme's original claim holds up.
-`profit_threshold = 6.5` and `avg_down_threshold = 4%` also survive: 4, 10 and
-15 are all worse on balance, as are 2% and 8% avg-down.
-
-### Unaddressed risk: there is no stop-loss
-
-A position is only ever sold above +profit_threshold, so "win rate on sells" is
-100% by construction and means nothing. The real picture is in what is still
-held: at the end of most windows **48-67% of open positions are underwater**,
-the worst around -10%. Losers are held indefinitely and quietly consume the
-book. Nothing tested here addresses that, and it is the most interesting
-direction left — a time-based or drawdown-based exit for chronic losers.
+```bash
+./.venv/bin/python backtest_windows.py     # the regime table
+./.venv/bin/python param_sweep.py          # one-at-a-time sensitivity
+./.venv/bin/python candidate_configs.py    # validate a variant on every window
+./.venv/bin/python plot_windows.py         # interactive charts into docs/
+```

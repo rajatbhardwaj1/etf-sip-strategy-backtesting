@@ -4,7 +4,8 @@ and a cashflow-matched Nifty 50 SIP, on one time axis per regime.
 
 Produces a single self-contained HTML (plotly.js inlined once, no CDN).
 
-    python plot_windows.py [--out reports/windows.html] [--config live|M]
+    python plot_windows.py                 # -> docs/index.html, for GitHub Pages
+    python plot_windows.py --config L --out reports/windows_L.html
 """
 import argparse
 import os
@@ -26,8 +27,10 @@ from src.utils import fetch_ohlc, filter_outliers, sanitize_price_series
 SIP_AMOUNT = 30_000
 CONFIGS = {
     "live": {},
-    "M": {"avg_down_scan_all": True, "avg_down_priority": True,
-          "avg_down_extra_slots": 1, "max_daily_buys": 3},
+    # Research variant: averaging driven by drawdown from average cost, with a
+    # daily slot reserved for it. max_daily_buys stays at the live value of 1.
+    "L": {"avg_down_scan_all": True, "avg_down_priority": True,
+          "avg_down_extra_slots": 1},
 }
 
 # One palette for the whole page so a colour means the same thing everywhere.
@@ -267,7 +270,7 @@ softened by ongoing SIP inflows.</footer>
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="reports/windows.html")
+    ap.add_argument("--out", default="docs/index.html")
     ap.add_argument("--config", default="live", choices=list(CONFIGS))
     args = ap.parse_args()
 

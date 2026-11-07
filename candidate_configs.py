@@ -24,17 +24,18 @@ SIP_AMOUNT = 30_000
 LIVE = dict(dma_window=10, profit_threshold=6.5, trailing_stop=0.5,
             max_daily_buys=1, avg_down_threshold=4.0, buy_divisor=40)
 
+# max_daily_buys stays at the live value of 1 throughout. Raising it scored
+# well, but it changes how much the strategy deploys per day rather than how it
+# decides, and it is deliberately out of scope here.
 CANDIDATES = [
     ("A live", {}),
-    ("C more buys/day (3)", {"max_daily_buys": 3}),
-    # Thesis: never stop out, keep averaging so the break-even bar comes down.
+    # Thesis: never stop out of an ETF, keep averaging so the break-even bar
+    # comes down to meet the price rather than waiting for a full recovery.
     ("I avg-down priority", {"avg_down_priority": True}),
     ("J avg-down own slot", {"avg_down_extra_slots": 1, "avg_down_priority": True}),
     ("K avg-down on cost drawdown", {"avg_down_scan_all": True, "avg_down_priority": True}),
     ("L K + own slot", {"avg_down_scan_all": True, "avg_down_priority": True,
                         "avg_down_extra_slots": 1}),
-    ("M L + 3 buys/day", {"avg_down_scan_all": True, "avg_down_priority": True,
-                          "avg_down_extra_slots": 1, "max_daily_buys": 3}),
 ]
 
 
