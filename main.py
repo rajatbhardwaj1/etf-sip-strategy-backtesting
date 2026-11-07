@@ -1,21 +1,24 @@
 from src.utils import fetch_multiple_ohlc, filter_outliers, fetch_ohlc, calculate_cagr, plot_strategy_vs_index, \
-    xirr_calculator
+    xirr_calculator, sanitize_price_series
 from src.sip_strategy import SIPStrategy
+from src.report import build_report
 from src.etfs import ETFS
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
 
 if __name__ == "__main__":
-    start_date = "2020-08-01"
-    end_date = "2025-10-01"
+    start_date = "2021-08-01"
+    # default to the latest data available in data/ (refresh it with update_data.py)
+    end_date = pd.Timestamp.today().strftime("%Y-%m-%d")
     initial_capital = 0
     sip_amount = 30000
 
     # --- Fetch ETFs ---
     etf_data = fetch_multiple_ohlc(ETFS, start=start_date, end=end_date)
     for symbol, df in etf_data.items():
-        etf_data[symbol] = filter_outliers(df, column="Close", max_change_pct=20)
+        df = filter_outliers(df, column="Close", max_change_pct=20)
+        etf_data[symbol] = sanitize_price_series(df, column="Close")
 
     # --- Run SIP strategy ---
     strategy = SIPStrategy()
@@ -60,6 +63,7 @@ if __name__ == "__main__":
     nifty_df.reset_index(inplace=True)
     nifty_df = nifty_df.sort_values("Date")
     nifty_df = filter_outliers(nifty_df, column="Close", max_change_pct=20)
+    nifty_df = sanitize_price_series(nifty_df, column="Close")
 
     # --- Initialize SIP tracking ---
     nifty_units = 0
@@ -204,4 +208,18 @@ if __name__ == "__main__":
     print("Expected net worth (initial + SIP - fees + PnL_total):", expected_net_worth)
     print("Gap (reported_net_worth - expected_net_worth):", reported_net_worth - expected_net_worth)
 
-    plot_strategy_vs_index(net_worth_df, nifty_df,big_drops,  cash_history_df)
+    # --- Interactive HTML report (zoom, hover, click-through analysis) ---
+    build_report(
+        net_worth_df=net_worth_df,
+        nifty_df=nifty_df,
+        trades_df=trades_df,
+        monthly_invested_cash=result.get("monthly_invested_cash", {}),
+        cash_history=cash_history_df,
+        portfolio=portfolio,
+        out_path="reports/backtest_report.html",
+        title="ETF SIP strategy vs Nifty 50 SIP",
+        open_browser=True,
+    )
+
+    # Static matplotlib version, kept for quick glances:
+    # plot_strategy_vs_index(net_worth_df, nifty_df, big_drops, cash_history_df)

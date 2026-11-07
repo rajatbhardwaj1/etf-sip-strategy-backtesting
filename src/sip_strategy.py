@@ -20,7 +20,11 @@ class SIPStrategy:
         trailing_stop: float = 0.5,
         max_daily_buys: int = 1,
         avg_down_threshold: float = 4.0,
-        increment: float = 15
+        increment: float = 15,
+        buy_divisor: int = 40,
+        hydration: float = 0,
+        hydration_increment: float = 0,
+        sell_fee: float = 20,
     ):
         self.dma_window = dma_window
         self.profit_threshold = profit_threshold
@@ -28,12 +32,19 @@ class SIPStrategy:
         self.max_daily_buys = max_daily_buys
         self.avg_down_threshold = avg_down_threshold
         self.increment = increment
+        # Each buy is net_worth/buy_divisor, so this sets how fast the SIP is
+        # deployed. Previously hardcoded at 40 inside generate_signals, which
+        # made it the one parameter that could not be tuned or swept.
+        self.buy_divisor = buy_divisor
+        self.hydration = hydration
+        self.hydration_increment = hydration_increment
+        self.sell_fee = sell_fee
 
     def generate_signals(
         self,
         etf_data: Dict[str, pd.DataFrame],
         capital: float = 0,
-        sip_amount: float = 40000
+        sip_amount: float = 30000
     ) -> Dict[str, pd.DataFrame]:
 
         portfolio = {}
@@ -42,9 +53,9 @@ class SIPStrategy:
         net_worth_history = []
         cash_history = []
         cash = capital
-        hydration = 0
-        buy_divisor = 40
-        hydration_increment = 100000
+        hydration = self.hydration
+        buy_divisor = self.buy_divisor
+        hydration_increment = self.hydration_increment
         # Prepare percent changes
         percent_changes = {}
         for symbol, df in etf_data.items():
@@ -83,7 +94,7 @@ class SIPStrategy:
 
             # --- Buy / Avg Down ---
             for symbol, pct, close in daily_etfs:
-                if buys_today >= self.max_daily_buys:
+                if buys_today >= self.max_daily_buys or pct > 0:
                     break
 
                 net_worth = cash + sum(info["shares"] * info.get("current_close", info["buy_price"])
@@ -135,7 +146,7 @@ class SIPStrategy:
                         trades.append({"date": date, "symbol": symbol, "action": "SELL_TRAILING",
                                        "price": open_price, "shares": portfolio[symbol]["shares"] , "profit": profit, "hold_days" : portfolio[symbol]["hold_days"]})
                         cash += portfolio[symbol]["shares"] * open_price
-                        # cash -= 20
+                        cash -= self.sell_fee
                         del portfolio[symbol]
 
             # --- Update current closing price for portfolio ---

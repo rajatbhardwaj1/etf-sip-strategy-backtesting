@@ -370,6 +370,47 @@ def filter_outliers(df, column="Close", max_change_pct=50):
 
 
 
+def sanitize_price_series(df: pd.DataFrame, column: str = "Close",
+                         band: float = 3.0, window: int = 21) -> pd.DataFrame:
+    """
+    Drop rows whose price is physically implausible against its own neighbourhood.
+
+    filter_outliers() only compares each row to the previous one, computed in a
+    single pass over the unfiltered series. That cannot catch a multi-day
+    corrupt *plateau*, which is the shape Yahoo actually produces: GOLDBEES
+    collapses to 0.34 on 2019-12-19 (-99%) and returns to 33.65 on 2019-12-23
+    (+9900%). Both edge rows get dropped for exceeding the daily threshold, but
+    the three 0.34 rows between them survive - their day-to-day changes are
+    tiny - and the strategy reads them as the largest "fallen" signal in its
+    history, buys with everything it has, and books a fictional 5.7M profit.
+
+    Comparing against a centred rolling median instead is immune to that: a
+    plateau cannot drag a median it is a minority of. The band is deliberately
+    wide (3x) so genuine volatility, gaps and real splits are left alone - this
+    is a corruption filter, not a smoother.
+    """
+    df = df.sort_values("Date").copy()
+    df[column] = pd.to_numeric(df[column], errors="coerce")
+
+    reference = df[column].rolling(window, center=True, min_periods=5).median()
+    plausible = (
+        df[column].notna()
+        & (df[column] > 0)
+        & reference.notna()
+        & (df[column] >= reference / band)
+        & (df[column] <= reference * band)
+    )
+    # Keep rows the reference cannot judge (series shorter than min_periods).
+    plausible |= reference.isna()
+
+    dropped = int((~plausible).sum())
+    if dropped:
+        logger = __import__("logging").getLogger(__name__)
+        logger.warning("sanitize_price_series: dropped %d implausible row(s) on %s",
+                       dropped, column)
+    return df[plausible].reset_index(drop=True)
+
+
 def calculate_cagr(df: pd.DataFrame, value_column: str = "NetWorth") -> dict:
     """
     Calculate overall CAGR and yearly CAGR for a portfolio or index.
