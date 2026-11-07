@@ -29,6 +29,7 @@ class SIPStrategy:
         avg_down_extra_slots: int = 0,
         avg_down_scan_all: bool = False,
         max_positions: int = 0,
+        hydration_mode: str = "overdraft",
     ):
         self.dma_window = dma_window
         self.profit_threshold = profit_threshold
@@ -63,6 +64,24 @@ class SIPStrategy:
         self.avg_down_extra_slots = avg_down_extra_slots
         self.avg_down_scan_all = avg_down_scan_all
         self.max_positions = max_positions
+
+        # The deployed bot and this backtester historically meant opposite
+        # things by "hydration", which only matters once it is non-zero:
+        #
+        #   "overdraft" (this file's original behaviour) - hydration lifts the
+        #       spending cap above available cash, so cash may go negative. The
+        #       borrowed money is never counted as capital, and no interest is
+        #       charged, which makes it free leverage.
+        #   "live" (src/strategy.py in strategy-automation) - hydration is a
+        #       loan that is ALREADY sitting in the broker cash balance. The
+        #       full cash is spendable, and the loan is subtracted from the
+        #       sizing base so positions are not sized as though the loan were
+        #       the account's own capital.
+        #
+        # Use "live" to backtest what is actually deployed. The caller must
+        # also seed capital=hydration and repay it from the final net worth,
+        # or borrowed money is reported as profit.
+        self.hydration_mode = hydration_mode
 
     def generate_signals(
         self,
@@ -167,9 +186,14 @@ class SIPStrategy:
 
                 net_worth = cash + sum(info["shares"] * info.get("current_close", info["buy_price"])
                                        for info in portfolio.values())
-                buy_amount = net_worth / buy_divisor
-
-                max_allowance =  cash + hydration
+                if self.hydration_mode == "live":
+                    # Loan already inside cash: exclude it from the sizing base,
+                    # and treat cash alone as the ceiling.
+                    buy_amount = max(net_worth - hydration, 0) / buy_divisor
+                    max_allowance = cash
+                else:
+                    buy_amount = net_worth / buy_divisor
+                    max_allowance = cash + hydration
                 buy_amount = min(buy_amount , max_allowance)
 
                 if not is_held:

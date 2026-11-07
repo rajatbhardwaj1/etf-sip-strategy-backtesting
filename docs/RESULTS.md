@@ -137,14 +137,24 @@ that cost 14 points in the rally earned 17 in the chop.
    young book deploys slowly. That is why short windows show 36-57% idle cash.
    A mature portfolio does not carry that drag, so short-window results
    understate a running deployment.
-3. **No costs modelled beyond a flat ₹20 per sell.** No brokerage on buys, no
+3. **Hydration is zero in these runs; the live bot runs ₹50,000.** "Hydration"
+   is a loan held in the broker cash balance. Modelling it faithfully - seeded
+   into starting cash, excluded from the position-sizing base, repaid out of
+   final net worth - moves XIRR by less than 0.7 points in either direction
+   (-0.69pp over the full history, +0.61pp over five years, +0.02pp and 0.00pp
+   in 2020-21 and 2022). It raises the cash ceiling and lowers the sizing base,
+   and the two roughly cancel. In the short windows cash never fell below
+   ₹29,000, so the extra ceiling was never reached at all. No interest is
+   charged on the loan in either codebase, so even that small benefit is
+   flattering. Use `hydration_mode="live"` to reproduce.
+4. **No costs modelled beyond a flat ₹20 per sell.** No brokerage on buys, no
    STT, no stamp duty, no slippage. Real-world figures will be lower; the live
    deployment's contract notes show roughly ₹1,500 of charges per ₹6 lakh
    traded.
-4. **Max drawdown is softened by inflows.** It is peak-to-trough on net worth,
+5. **Max drawdown is softened by inflows.** It is peak-to-trough on net worth,
    and continuing SIP money lifts the curve. Treat it as comparable between
    windows, not as an absolute risk measure.
-5. **One parameter set, tested on the same data it was chosen on.** The
+6. **One parameter set, tested on the same data it was chosen on.** The
    parameters below were not selected by this backtest, but neither have they
    been walk-forward validated.
 
