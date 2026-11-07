@@ -44,8 +44,11 @@ def live_universe():
     if os.path.exists(LIVE_UNIVERSE_SRC):
         syms = re.findall(r'"([A-Z0-9]+)"', open(LIVE_UNIVERSE_SRC).read())
         return [f"{s}.NS" for s in syms]
-    from src.etfs import ETFS
-    return ETFS
+    # Off the author's machine the deployed bot's source is not there, so fall
+    # back to the pinned copy. Without this a clean clone would silently run a
+    # different universe than the published results.
+    from src.etfs import ETFS_LIVE
+    return ETFS_LIVE
 
 
 # ---------------------------------------------------------------- XIRR

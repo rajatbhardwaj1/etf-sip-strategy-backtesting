@@ -1,3 +1,17 @@
+# The universe the live trading bot actually trades, as of 2026-11-07. The
+# backtests in docs/RESULTS.md use exactly this list, so the published numbers
+# are reproducible from a clean clone - backtest_windows.live_universe() reads
+# the deployed bot's own source when it is present and falls back to this.
+ETFS_LIVE = [
+    "ALPHA.NS", "ALPL30IETF.NS", "AUTOBEES.NS", "BANKBEES.NS", "BFSI.NS", "COMMOIETF.NS",
+    "CONSUMBEES.NS", "CPSEETF.NS", "FMCGIETF.NS", "GOLDBEES.NS", "HDFCSML250.NS", "HEALTHY.NS",
+    "HNGSNGBEES.NS", "ICICIB22.NS", "INFRABEES.NS", "ITBEES.NS", "JUNIORBEES.NS", "LOWVOLIETF.NS",
+    "LTGILTBEES.NS", "MAKEINDIA.NS", "MID150BEES.NS", "MIDCAP.NS", "MIDSMALL.NS", "MOM100.NS",
+    "MOM30IETF.NS", "MONIFTY500.NS", "MOREALTY.NS", "MOVALUE.NS", "NIF100BEES.NS", "NIFTYBEES.NS",
+    "PHARMABEES.NS", "PSUBNKBEES.NS", "PVTBANIETF.NS", "SILVERBEES.NS", "SMALLCAP.NS", "TNIDETF.NS",
+    "MODEFENCE.NS", "METALIETF.NS", "OILIETF.NS",
+]
+
 # List of ETFs to fetch
 ETFS = [
     "ALPHA.NS", "ALPL30IETF.NS", "AUTOBEES.NS", "BANKBEES.NS", "BFSI.NS", "COMMOIETF.NS",
