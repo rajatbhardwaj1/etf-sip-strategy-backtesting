@@ -25,12 +25,16 @@ LIVE = dict(dma_window=10, profit_threshold=6.5, trailing_stop=0.5,
             max_daily_buys=1, avg_down_threshold=4.0, buy_divisor=40)
 
 CANDIDATES = [
-    ("A live (divisor 40, exit 6.5)", {}),
-    ("B deploy faster (divisor 10)", {"buy_divisor": 10}),
+    ("A live", {}),
     ("C more buys/day (3)", {"max_daily_buys": 3}),
-    ("D let winners run (exit 12)", {"profit_threshold": 12.0}),
-    ("G B+C (divisor 10, 3 buys)", {"buy_divisor": 10, "max_daily_buys": 3}),
-    ("H divisor 20, 3 buys", {"buy_divisor": 20, "max_daily_buys": 3}),
+    # Thesis: never stop out, keep averaging so the break-even bar comes down.
+    ("I avg-down priority", {"avg_down_priority": True}),
+    ("J avg-down own slot", {"avg_down_extra_slots": 1, "avg_down_priority": True}),
+    ("K avg-down on cost drawdown", {"avg_down_scan_all": True, "avg_down_priority": True}),
+    ("L K + own slot", {"avg_down_scan_all": True, "avg_down_priority": True,
+                        "avg_down_extra_slots": 1}),
+    ("M L + 3 buys/day", {"avg_down_scan_all": True, "avg_down_priority": True,
+                          "avg_down_extra_slots": 1, "max_daily_buys": 3}),
 ]
 
 
@@ -54,9 +58,24 @@ def evaluate(symbols, start, end, overrides):
     cash_df = pd.DataFrame(result["cash_history"])
     merged = result["net_worth"].merge(cash_df, on="Date", how="left")
 
+    trades = pd.DataFrame(result["trades"])
+    exits = len(trades[trades["action"].astype(str).str.contains("SELL")]) if len(trades) else 0
+    opens = len(trades[trades["action"].astype(str) == "BUY"]) if len(trades) else 0
+    avg_downs = len(trades[trades["action"].astype(str) == "BUY_AVERAGE_DOWN"]) if len(trades) else 0
+    sells = trades[trades["action"].astype(str).str.contains("SELL")] if len(trades) else trades
+    med_hold = float(sells["hold_days"].median()) if len(sells) else None
+    pf = result.get("portfolio", {})
+    under = sum(1 for i in pf.values()
+                if i.get("current_close", i["buy_price"]) < i["buy_price"])
+
     bench = benchmark_sip("^NSEI", monthly, sip_dates, start, end)
     return {
         "xirr": xirr(flows),
+        "exit_rate": round(exits / opens, 3) if opens else None,
+        "avg_downs": avg_downs,
+        "med_hold": med_hold,
+        "open": len(pf),
+        "underwater": under,
         "bench": bench["xirr"] if bench else None,
         "dd": max_drawdown(result["net_worth"]),
         "cash": float((merged["Cash"] / merged["NetWorth"].replace(0, pd.NA)).mean()),
@@ -76,6 +95,10 @@ def main():
                 continue
             row[clabel] = res["xirr"]
             row[f"{clabel} dd"] = res["dd"]
+            row[f"{clabel} exit_rate"] = res["exit_rate"]
+            row[f"{clabel} med_hold"] = res["med_hold"]
+            row[f"{clabel} avg_downs"] = res["avg_downs"]
+            row[f"{clabel} underwater"] = res["underwater"]
             bench_shown = res["bench"]
         row["Nifty 50"] = bench_shown
         rows.append(row)
@@ -100,10 +123,13 @@ def main():
     for c, _ in CANDIDATES:
         beats_live = (out[c] > out[live_col]).sum()
         beats_bench = (out[c] > out["Nifty 50"]).sum()
-        print(f"  {c:32} beats live {beats_live}/{len(out)}   "
-              f"beats Nifty {beats_bench}/{len(out)}   "
-              f"mean XIRR {out[c].mean():+.2%}   "
-              f"worst dd {out[f'{c} dd'].min():+.1%}")
+        print(f"  {c:30} beats live {beats_live}/{len(out)}  "
+              f"beats Nifty {beats_bench}/{len(out)}  "
+              f"mean XIRR {out[c].mean():+.2%}  "
+              f"worst dd {out[f'{c} dd'].min():+.1%}  "
+              f"med hold {out[f'{c} med_hold'].mean():.0f}d  "
+              f"avg-downs {out[f'{c} avg_downs'].sum():.0f}  "
+              f"underwater at end {out[f'{c} underwater'].sum():.0f}")
 
 
 if __name__ == "__main__":
