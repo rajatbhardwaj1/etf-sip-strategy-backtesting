@@ -90,23 +90,42 @@ If you backtest Indian ETFs on Yahoo data, check this date.
 
 ### The one loss is the interesting one
 
-In the 2020-21 melt-up it returned +17.8% against the Nifty's +32.1%. That is
-not a flaw to be fixed so much as the strategy's nature: it buys dips and holds
-roughly half its book in cash waiting for them. A market that only goes up
-offers no dips to buy, and cash earns nothing.
+In the 2020-21 melt-up the strategy returned +17.8% against the Nifty's
++32.1% on identical cashflows. The cause is **throughput, not signal quality** —
+and it is worth being precise, because the intuitive explanation is wrong.
 
-The mirror image is 2022, when the index returned +9.2% and the strategy
-returned **+26.4%**. It is a chop-and-mean-reversion strategy. It lags trends
-and dominates ranges.
+It is tempting to say a one-way market gave it nothing to buy. It did not:
+ETFs traded below their 10-day moving average on **41.0% of days in 2020-21**,
+against **44.5% in 2022** — the year the strategy returned +26.4% and beat the
+index by 17 points. Buy signals were abundant. What failed was the capacity to
+act on them.
+
+Two rules cap deployment: each purchase is net worth ÷ 40, and only one new
+position may be opened per day. Starting from zero capital in January 2020 the
+book was small, so every buy was small, while ₹30,000 of fresh SIP arrived each
+month regardless. Cash piled up faster than the rules could spend it —
+**average idle cash 57.4%**, median day **62.7%**, below 25% on only **10% of
+days**. Through the fastest recovery in Indian market history, most of the
+portfolio earned nothing.
+
+The exit rule compounded it. Selling at +6.5% with a 0.5% trail produced **103
+exits at a median hold of 31 days**, averaging ₹1,700 realised each, while the
+Nifty rose **128% off its March 2020 low**. The strategy harvested repeated
+6.5% slices and re-entered higher; the index held the whole move. A SIP into
+the index also puts every rupee to work the day it arrives.
+
+The mirror image is 2022: index +9.2%, strategy **+26.4%**. The same mechanics
+that cost 14 points in the rally earned 17 in the chop.
 
 ### What drives the returns
 
-- **Exits are frequent and small.** 94% of positions close at just above +6.5%,
+- **Exits are frequent and small.** 94% of positions close just above +6.5%,
   median hold 63 days. Returns come from turnover, not from holding winners.
-- **Cash is a real cost.** 25-28% of net worth sits idle in mature windows and
-  over half in young ones.
-- **Sector dispersion is the fuel.** The strategy needs some sectors falling
-  while others rise. A uniformly rising market starves it.
+- **Cash is the binding constraint.** 25-28% of net worth sits idle in mature
+  windows and over half in young ones — and it is the position-sizing and
+  one-buy-a-day rules that cause it, not a shortage of signals.
+- **Mean reversion is the edge.** The strategy is structurally long volatility
+  and short trend: it lags sustained rallies and dominates ranges.
 
 ## Limitations — read these before trusting the numbers
 

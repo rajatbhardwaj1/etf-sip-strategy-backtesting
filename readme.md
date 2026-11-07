@@ -117,9 +117,14 @@ strategy and not the SIP schedule.
 | Last 3 years | 3.0 | **+11.1%** | +3.7% | -11% | 25% |
 | Last 1 year | 1.0 | **+13.5%** | +6.3% | -6% | 36% |
 
-Beat the index in 7 of 8 windows. The single loss is the 2020-21 melt-up: a
-dip-buyer holding half its book in cash cannot keep up with a market that only
-rises, and it returns the favour in 2022 (+26.4% against +9.2%).
+Beat the index in 7 of 8 windows. The single loss is the 2020-21 melt-up
+(+17.8% against +32.1%), and the cause is throughput rather than a shortage of
+signals: ETFs were below their 10-day DMA on 41.0% of days in 2020-21 against
+44.5% in 2022. Position size of net worth/40 and one buy a day could not deploy
+the SIP fast enough - average idle cash was 57.4% - while the +6.5% exit kept
+harvesting slices of a market that rose 128% off its low. The same mechanics
+return the favour in 2022 (+26.4% against +9.2%). Full reasoning in
+[docs/RESULTS.md](docs/RESULTS.md).
 
 ## The data bug
 
