@@ -1,19 +1,6 @@
-# Environments
-.venv/
-venv/
-env/
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# IDE files (PyCharm)
-.idea/
-
-# Data and Logs
-*.csv
-*.log
-*.sqlite
-data/
-plots/
+pandas>=2.0
+numpy>=1.24
+numpy-financial>=1.0
+matplotlib>=3.7
+plotly>=5.20
+yfinance>=0.2
